@@ -7,6 +7,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import os
 
 class FFNN_Regression():
 	def __init__(self, hidden_layers, num_inputs, num_outputs):
@@ -25,7 +26,6 @@ class FFNN_Regression():
 	def init_ioplaceholders(self):
 		self.X = tf.placeholder("float", [None, self.num_inputs])
 		self.Y = tf.placeholder("float", [None, self.num_outputs])
-		print('got here')
 
 	def init_weights(self):
 		self.weights = {}
@@ -72,7 +72,7 @@ class FFNN_Regression():
 		# Start training
 		with tf.Session() as sess:
 			# Run the initializer
-			if model == None:
+			if (model == None) or not os.path.exists(model):
 				sess.run(self.gv_init)
 			else:
 				self.saver.restore(sess, model)
@@ -87,10 +87,10 @@ class FFNN_Regression():
 				batch_y = [dataY[i] for i in batch_inds]
 
 				# Increment next batch
-				if batch_end < num_training_data:
+				if batch_end < len(dataX):
 					batch_start += batch_size
 					batch_end += batch_size
-					batch_end = min(batch_end,num_training_data)
+					batch_end = min(batch_end,len(dataX))
 				else:
 					# If reached the end of the batch, reshuffle and start from beginning
 					random.shuffle(data_inds)
@@ -98,7 +98,8 @@ class FFNN_Regression():
 					batch_end = batch_size
 
 				# Run optimization op (backprop)
-				loss, _ = sess.run([self.loss_op, self.optimizer], feed_dict={X: batch_x, Y:batch_x})
+				loss, _ = sess.run([self.loss_op, self.optimizer],\
+					feed_dict={self.X: batch_x, self.Y:batch_x})
 				if step % display_step == 0 or step == 1:
 					# Calculate batch loss and accuracy
 					print("Step " + str(step) + ", Minibatch Loss= " + "{:.4f}".format(loss))
@@ -118,7 +119,7 @@ class FFNN_Regression():
 			# Testing
 			for i in range(len(dataX)):
 				nn_output, loss = sess.run([self.output, self.loss_op],\
-					feed_dict={X: [dataX[i]], Y: [dataY[i]]})
+					feed_dict={self.X: [dataX[i]], self.Y: [dataY[i]]})
 				print(nn_output)
 				print(dataY[i])
 				#print(loss)
@@ -133,5 +134,5 @@ class FFNN_Regression():
 		self.sess.close()
 
 	def run(self, dataX):
-		nn_output = self.sess.run(self.output, feed_dict={X: dataX})
+		nn_output = self.sess.run(self.output, feed_dict={self.X: dataX})
 		return nn_output
