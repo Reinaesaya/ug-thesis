@@ -9,12 +9,12 @@ import matplotlib.pyplot as plt
 import random
 import os
 
-class FFNN_1():
+class FFNN_tanh():
 	"""
 	Feed forward neural network instantiation with
 	tanh activation each layer except for output layer
 	"""
-	def __init__(self, hidden_layers, num_inputs, num_outputs, model=None):
+	def __init__(self, hidden_layers, num_inputs, num_outputs, drop=False, regbeta=0.00, model=None):
 		if len(hidden_layers) < 1:
 			print ('No hidden layers???')
 
@@ -23,6 +23,8 @@ class FFNN_1():
 		self.num_outputs = num_outputs
 		self.model = model
 		self.sessopen = False
+		self.drop = drop
+		self.beta = regbeta
 
 		self.init_ioplaceholders()
 		self.init_weights()
@@ -51,15 +53,27 @@ class FFNN_1():
 
 	def construct_model(self):
 		self.layers = []
-		self.layers.append(tf.tanh(tf.add(tf.matmul(self.X, self.weights['1']), self.biases['1'])))
+		if self.drop:
+			self.layers.append(tf.nn.dropout(tf.tanh(tf.add(tf.matmul(self.X, \
+				self.weights['1']), self.biases['1'])),0.5))
+		else:
+			self.layers.append(tf.tanh(tf.add(tf.matmul(self.X, \
+				self.weights['1']), self.biases['1'])))
 		for i in range(len(self.hidden_layers)-1):
-			self.layers.append(tf.tanh(tf.add(tf.matmul(self.layers[-1], \
-				self.weights[str(i+2)]), self.biases[str(i+2)])))
+			if self.drop:
+				self.layers.append(tf.nn.dropout(tf.tanh(tf.add(tf.matmul(self.layers[-1], \
+					self.weights[str(i+2)]), self.biases[str(i+2)])),0.5))
+			else:
+				self.layers.append(tf.tanh(tf.add(tf.matmul(self.layers[-1], \
+					self.weights[str(i+2)]), self.biases[str(i+2)])))
 		self.layers.append(tf.add(tf.matmul(self.layers[-1],\
 			self.weights['out']), self.biases['out']))
 
 		self.output = self.layers[-1]
-		self.loss_op = tf.reduce_mean(tf.square(self.Y - self.output))
+		self.reg = tf.nn.l2_loss(self.weights['out'])
+		for i in range(len(self.hidden_layers)):
+			self.reg = self.reg + tf.nn.l2_loss(self.weights[str(i+1)])
+		self.loss_op = tf.reduce_mean(tf.square(self.Y - self.output) + self.beta*self.reg)
 
 	def init_optimizer(self):
 		self.learning_rate_placeholder = tf.placeholder(tf.float32, [], name='learning_rate')
@@ -145,3 +159,33 @@ class FFNN_1():
 	def run(self, dataX):
 		nn_output = self.sess.run(self.output, feed_dict={self.X: dataX})
 		return nn_output
+
+
+class FFNN_ReLU(FFNN_tanh):
+
+	def __init__(self, hidden_layers, num_inputs, num_outputs, drop=True, regbeta=0.01, model=None):
+		FFNN_tanh.__init__(self, hidden_layers, num_inputs, num_outputs, drop, regbeta, model)
+	
+	def construct_model(self):
+		self.layers = []
+		if self.drop:
+			self.layers.append(tf.nn.dropout(tf.nn.relu(tf.add(tf.matmul(self.X, \
+				self.weights['1']), self.biases['1'])),0.5))
+		else:
+			self.layers.append(tf.nn.relu(tf.add(tf.matmul(self.X, \
+				self.weights['1']), self.biases['1'])))
+		for i in range(len(self.hidden_layers)-1):
+			if self.drop:
+				self.layers.append(tf.nn.dropout(tf.nn.relu(tf.add(tf.matmul(self.layers[-1], \
+					self.weights[str(i+2)]), self.biases[str(i+2)])),0.5))
+			else:
+				self.layers.append(tf.nn.relu(tf.add(tf.matmul(self.layers[-1], \
+					self.weights[str(i+2)]), self.biases[str(i+2)])))
+		self.layers.append(tf.add(tf.matmul(self.layers[-1],\
+			self.weights['out']), self.biases['out']))
+
+		self.output = self.layers[-1]
+		self.reg = tf.nn.l2_loss(self.weights['out'])
+		for i in range(len(self.hidden_layers)):
+			self.reg = self.reg + tf.nn.l2_loss(self.weights[str(i+1)])
+		self.loss_op = tf.reduce_mean(tf.square(self.Y - self.output) + self.beta*self.reg)
