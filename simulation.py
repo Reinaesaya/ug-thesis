@@ -5,6 +5,7 @@ import sys
 
 from LinearModel import LinearModel
 from RRModel import RRModel
+from RPRModel import RPRModel
 
 
 class LinearSimulator():
@@ -23,11 +24,13 @@ class LinearSimulator():
             'IM_learnsteps': 1,
         }
 
+        self.instantiateModel()
         self.initializeModel(FM_itrain, IM_itrain)
 
-    def initializeModel(self, FM_itrain, IM_itrain):
-        self.model = RRModel(self.params)       # Instantiate
+    def instantiateModel(self):
+        self.model = LinearModel(self.params)       # Instantiate
 
+    def initializeModel(self, FM_itrain, IM_itrain):
         self.model.initFM()                         # Initialize forward model if exists
         self.model.openSessionFM()                  # Open session and load forward model if exists
         if FM_itrain:                               # Train forward model (no disturbance)
@@ -92,7 +95,7 @@ class LinearSimulator():
             self.model.saveFM()
             self.model.saveIM()
 
-        plt.figure(1)                                                   # Plot error vs reps
+        plt.figure()                                                   # Plot error vs reps
         plt.plot(online_r, online_e, '.', offline_r, offline_e, '.')
         plt.ylabel('error')
         plt.legend(['Online', 'Offline'])
@@ -117,11 +120,15 @@ class RRSimulator(LinearSimulator):
             'arm_direction': 'right',                   # right or left arm
             'FM_learnrate': 0.0001,
             'FM_learnsteps': 1,
-            'IM_learnrate': 0.0000035,
+            'IM_learnrate': 0.000002,
             'IM_learnsteps': 1,
         }
 
+        self.instantiateModel()
         self.initializeModel(FM_itrain, IM_itrain)
+
+    def instantiateModel(self):
+        self.model = RRModel(self.params)       # Instantiate
 
     def LTreachexperiment(self, Qs, Xd, D, onlinereps, offlinereps, numsessions, saveafter=False):
         """
@@ -174,7 +181,7 @@ class RRSimulator(LinearSimulator):
             self.model.saveFM()
             self.model.saveIM()
 
-        plt.figure(1)                                                   # Plot error vs reps
+        plt.figure()                                                   # Plot error vs reps
         plt.plot(online_r, online_e, '.', offline_r, offline_e, '.')
         plt.ylabel('error')
         plt.legend(['Online', 'Offline'])
@@ -185,15 +192,44 @@ class RRSimulator(LinearSimulator):
         self.model.closeSessionIM()                 # Close inverse model session
 
 
+class RPRSimulator(RRSimulator):
+    def __init__(self, FM_path, IM_path, FM_itrain=False, IM_itrain=False):
+        """
+        Initialize model
+        """
+
+        self.params = {                                 # default parameters
+            'FM_path': FM_path,                            # location of forward model tensorflow model
+            'IM_path': IM_path,                            # location of inverse model tensorflow model
+            'a1': 100,                                  # link 1 length
+            'a2': 100,                                  # link 2 length
+            'arm_direction': 'right',                   # right or left arm
+            'FM_learnrate': 0.001,
+            'FM_learnsteps': 1,
+            'IM_learnrate': 0.0001,
+            'IM_learnsteps': 1,
+        }
+
+        self.instantiateModel()
+        self.initializeModel(FM_itrain, IM_itrain)
+
+
+    def instantiateModel(self):
+        self.model = RPRModel(self.params)       # Instantiate
 
 if __name__ == "__main__":
 
 # Linear Model Simulation
-    # myLinSim = LinearSimulator('./models/linearModel_FM.ckpt', './models/linearModel_IM.ckpt', False, False)
-    # myLinSim.LTreachexperiment([0,0,0], [20,30,40], [10,10,5], 50, 75, 5, False)
-    # myLinSim.close()
+    myLinSim = LinearSimulator('./models/linearModel_FM.ckpt', './models/linearModel_IM.ckpt', False, False)
+    myLinSim.LTreachexperiment([0,0,0], [20,30,40], [10,10,5], 50, 75, 5, False)
+    myLinSim.close()
 
 # RR Manipulator Model Simulation
     myRRSim = RRSimulator('./models/RRModel_FM.ckpt', './models/RRModel_IM.ckpt', False, False)
     myRRSim.LTreachexperiment(myRRSim.model.restQ, [40,60], [np.pi/8, np.pi/8], 50, 75, 5, False)
     myRRSim.close()
+
+# RPR Manipulator Model Simulation
+    myRPRSim = RPRSimulator('./models/RPRModel_FM.ckpt', './models/RPRModel_IM.ckpt', False, False)
+    myRPRSim.LTreachexperiment(myRPRSim.model.restQ, [40,60], [np.pi/8, -10, np.pi/8], 50, 75, 5, False)
+    myRPRSim.close()

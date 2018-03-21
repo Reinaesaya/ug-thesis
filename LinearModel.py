@@ -60,7 +60,7 @@ class LinearModel():
             merged = np.concatenate((merged,s),axis=1)
         return merged
 
-    def runPlant(self, Xs, C, D=np.array([0,0,0])):
+    def runPlant(self, Xs, C, D):
         """
         Get plant output (simple addition)
         """
@@ -160,7 +160,7 @@ class LinearModel():
         Xf = self.runPlant(Xs, C)
         return Xf
 
-    def onlineReach(self, Xs, Xd, D=np.array([0,0,0]), FM_learn=True, IM_learn=True):
+    def onlineReach(self, Xs, Xd, D, FM_learn=True, IM_learn=True):
         """
         Online reach with recurrent control and plant feedback
         """
@@ -186,7 +186,7 @@ class LinearModel():
 
         return Xf   
 
-    def offlineReach(self, Xs, Xd, D=np.array([0,0,0]), FM_learn=True, IM_learn=True):
+    def offlineReach(self, Xs, Xd, D, FM_learn=True, IM_learn=True):
         """
         Offline reach with recurrent control and no plant feedback
         """
