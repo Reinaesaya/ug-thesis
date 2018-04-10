@@ -58,11 +58,16 @@ class ArmBase():
             H = np.matmul(H,Hq)
         return H
 
-    def runPlant(self, Qs, C, D):
+    def runPlant(self, Qs, C, variation, D):
         """
-        Get plant output (simple addition)
+        Get plant output
         """
-        return self.solveFK(Qs+C+D)[0:2,3]
+        if variation.lower() == "linear":
+            return self.solveFK(Qs+C+D)[0:2,3]
+        elif variation.lower() == "inverse":
+            return self.solveFK(Qs-C)[0:2,3]
+        elif variation.lower() == "halfcommand":
+            return self.solveFK(Qs+C/2)[0:2,3]
 
 if __name__ == "__main__":
     pass

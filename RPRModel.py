@@ -112,13 +112,13 @@ class RPRModel(RRModel):
 
 ### RECURRENT ADAPTIVE NEURAL NETWORK CONTROL ###
 
-    def noFMReach(self, Qs, Xd):
+    def noFMReach(self, Qs, Xd, variation):
         """
         Reach without recurrent control architecture (disregard cerebellar forward model)
         """
         Xs = np.array(self.solveFK(Qs)[0:2,3])
         C = self.runIM(Xs, Xd)
-        Xf = self.runPlant(Qs, C, np.array([0,0,0]))
+        Xf = self.runPlant(Qs, C, variation, np.array([0,0,0]))
         return Xf
 
 

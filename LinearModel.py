@@ -60,11 +60,17 @@ class LinearModel():
             merged = np.concatenate((merged,s),axis=1)
         return merged
 
-    def runPlant(self, Xs, C, D):
+    def runPlant(self, Xs, C, variation, D):
         """
-        Get plant output (simple addition)
+        Get plant output
         """
-        return Xs+C+D
+        if variation.lower() == "linear":
+            return Xs+C+D
+        elif variation.lower() == "inverse":
+            return Xs-C
+        elif variation.lower() == "halfcommand":
+            return Xs+C/2
+
 
 
 ### INTERNAL FORWARD MODEL NEURAL NETWORK (CEREBELLUM) ###
@@ -152,15 +158,15 @@ class LinearModel():
         self.prevE = np.array([0,0,0])
 
 
-    def noFMReach(self, Xs, Xd):
+    def noFMReach(self, Xs, Xd, variation):
         """
         Reach without recurrent control architecture (disregard cerebellar forward model)
         """
         C = self.runIM(Xs, Xd)
-        Xf = self.runPlant(Xs, C)
+        Xf = self.runPlant(Xs, C, variation, np.array([0,0,0]))
         return Xf
 
-    def onlineReach(self, Xs, Xd, D, FM_learn=True, IM_learn=True):
+    def onlineReach(self, Xs, Xd, variation, D, FM_learn=True, IM_learn=True):
         """
         Online reach with recurrent control and plant feedback
         """
@@ -173,7 +179,7 @@ class LinearModel():
 
         self.prevXd = self.prevXd+self.prevE        # update recursion block
         C = self.runIM(Xs, self.prevXd)             # get command from inverse model
-        Xf = self.runPlant(Xs, C, D)                # get actual plant output
+        Xf = self.runPlant(Xs, C, variation, D)     # get actual plant output
 
         Xp = self.runFM(Xs, C)                      # get prediction from forward model
         self.prevE = Xd-Xp                          # update error for next recursive update
@@ -181,19 +187,19 @@ class LinearModel():
         # Online learning/adaptation
         if FM_learn:
             self.FM.train(self.mux([[Xs],[C]]),[Xf],self.params['FM_learnrate'],self.params['FM_learnsteps'],1)
-        if IM_learn:
-            self.IM.train(self.mux([[Xs],[Xf]]),[C],self.params['IM_learnrate'],self.params['IM_learnsteps'],1)
+#        if IM_learn:
+#            self.IM.train(self.mux([[Xs],[Xf]]),[C],self.params['IM_learnrate'],self.params['IM_learnsteps'],1)
 
-        return Xf   
+        return Xf
 
-    def offlineReach(self, Xs, Xd, D, FM_learn=True, IM_learn=True):
+    def offlineReach(self, Xs, Xd, variation, D, FM_learn=True, IM_learn=True):
         """
         Offline reach with recurrent control and no plant feedback
         """
-        C = self.runIM(Xs, Xd)              # generated command from inverse model
-        Xp = self.runFM(Xs, C)              # predicted output from forward model
+        C = self.runIM(Xs, Xd)                      # generated command from inverse model
+        Xp = self.runFM(Xs, C)                      # predicted output from forward model
 
-        Xf = self.runPlant(Xs, C, D)        # plant output (doesn't actually happen - for visualization purposes online)
+        Xf = self.runPlant(Xs, C, variation, D)     # plant output (doesn't actually happen - for visualization purposes online)
 
         # Offline learning/adaptation
         if FM_learn:

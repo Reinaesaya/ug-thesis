@@ -10,15 +10,11 @@ Install **anaconda2** and **Tensorflow** using ```conda install```
 
 ## Running
 
-After pulling the repository, the NNs must be first trained. To train the NNs (on a world with no disturbance), go into [simulation.py](simulation.py) and change
+After pulling the repository, the NNs must be first trained. To train the NNs (on a world with no disturbance), go into [simulation.py](simulation.py) and change the first instance of
 
 ```python
 ...
-myLinSim = LinearSimulator('./models/linearModel_FM.ckpt', './models/linearModel_IM.ckpt', False, False)
-...
-myRRSim = RRSimulator('./models/RRModel_FM.ckpt', './models/RRModel_IM.ckpt', False, False)
-...
-myRPRSim = RPRSimulator('./models/RPRModel_FM.ckpt', './models/RPRModel_IM.ckpt', False, False)
+    myRRSim = RRSimulator('./models/RRModel_FM.ckpt', './models/RRModel_IM.ckpt', False, False)
 ...
 ```
 
@@ -26,11 +22,7 @@ to
 
 ```python
 ...
-myLinSim = LinearSimulator('./models/linearModel_FM.ckpt', './models/linearModel_IM.ckpt', True, True)
-...
-myRRSim = RRSimulator('./models/RRModel_FM.ckpt', './models/RRModel_IM.ckpt', True, True)
-...
-myRPRSim = RPRSimulator('./models/RPRModel_FM.ckpt', './models/RPRModel_IM.ckpt', True, True)
+    myRRSim = RRSimulator('./models/RRModel_FM.ckpt', './models/RRModel_IM.ckpt', True, True)
 ...
 ```
 

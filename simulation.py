@@ -2,6 +2,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 import sys
+import tensorflow as tf
 
 from LinearModel import LinearModel
 from RRModel import RRModel
@@ -44,7 +45,7 @@ class LinearSimulator():
             self.model.saveIM()
 
 
-    def LTreachexperiment(self, Xs, Xd, D, onlinereps, offlinereps, numsessions, saveafter=False):
+    def LTreachexperiment(self, Xs, Xd, variation, D, onlinereps, offlinereps, numsessions, FM_learn=True, IM_learn=True, saveafter=False):
         """
         Long term reach experiment
 
@@ -76,8 +77,8 @@ class LinearSimulator():
                 online_r.append(rep)
                 total_r.append(rep)
 
-                Xf = self.model.onlineReach(Xs, Xd, D)                  # Online reach
-                E = np.linalg.norm(Xf-Xd)                               # Error
+                Xf = self.model.onlineReach(Xs, Xd, variation, D, FM_learn, IM_learn)       # Online reach
+                E = np.linalg.norm(Xf-Xd)                                                   # Error
                 online_e.append(E)
                 total_e.append(E)
             
@@ -86,8 +87,8 @@ class LinearSimulator():
                 offline_r.append(rep)
                 total_r.append(rep)
 
-                Xf = self.model.offlineReach(Xs, Xd, D)                 # Offline reach
-                E = np.linalg.norm(Xf-Xd)                               # Error
+                Xf = self.model.offlineReach(Xs, Xd, variation, D, FM_learn, IM_learn)      # Offline reach
+                E = np.linalg.norm(Xf-Xd)                                                   # Error
                 offline_e.append(E)
                 total_e.append(E)
 
@@ -119,9 +120,9 @@ class RRSimulator(LinearSimulator):
             'a2': 100,                                  # link 2 length
             'arm_direction': 'right',                   # right or left arm
             'FM_learnrate': 0.0001,
-            'FM_learnsteps': 1,
-            'IM_learnrate': 0.000002,
-            'IM_learnsteps': 1,
+            'FM_learnsteps': 3,
+            'IM_learnrate': 0.00001,
+            'IM_learnsteps': 3,
         }
 
         self.instantiateModel()
@@ -130,7 +131,7 @@ class RRSimulator(LinearSimulator):
     def instantiateModel(self):
         self.model = RRModel(self.params)       # Instantiate
 
-    def LTreachexperiment(self, Qs, Xd, D, onlinereps, offlinereps, numsessions, saveafter=False):
+    def LTreachexperiment(self, Qs, Xd, variation, D, onlinereps, offlinereps, numsessions, FM_learn=True, IM_learn=True, saveafter=False):
         """
         Long term reach experiment
 
@@ -162,8 +163,8 @@ class RRSimulator(LinearSimulator):
                 online_r.append(rep)
                 total_r.append(rep)
 
-                Xf = self.model.onlineReach(Qs, Xd, D)                  # Online reach
-                E = np.linalg.norm(Xf-Xd)                               # Error
+                Xf = self.model.onlineReach(Qs, Xd, variation, D, FM_learn, IM_learn)       # Online reach
+                E = np.linalg.norm(Xf-Xd)                                                   # Error
                 online_e.append(E)
                 total_e.append(E)
             
@@ -172,8 +173,8 @@ class RRSimulator(LinearSimulator):
                 offline_r.append(rep)
                 total_r.append(rep)
 
-                Xf = self.model.offlineReach(Qs, Xd, D)                 # Offline reach
-                E = np.linalg.norm(Xf-Xd)                               # Error
+                Xf = self.model.offlineReach(Qs, Xd, variation, D, FM_learn, IM_learn)      # Offline reach
+                E = np.linalg.norm(Xf-Xd)                                                   # Error
                 offline_e.append(E)
                 total_e.append(E)
 
@@ -199,8 +200,8 @@ class RPRSimulator(RRSimulator):
         """
 
         self.params = {                                 # default parameters
-            'FM_path': FM_path,                            # location of forward model tensorflow model
-            'IM_path': IM_path,                            # location of inverse model tensorflow model
+            'FM_path': FM_path,                         # location of forward model tensorflow model
+            'IM_path': IM_path,                         # location of inverse model tensorflow model
             'a1': 100,                                  # link 1 length
             'a2': 100,                                  # link 2 length
             'arm_direction': 'right',                   # right or left arm
@@ -219,17 +220,54 @@ class RPRSimulator(RRSimulator):
 
 if __name__ == "__main__":
 
-# Linear Model Simulation
-    myLinSim = LinearSimulator('./models/linearModel_FM.ckpt', './models/linearModel_IM.ckpt', False, False)
-    myLinSim.LTreachexperiment([0,0,0], [20,30,40], [10,10,5], 50, 75, 5, False)
-    myLinSim.close()
+# Linear model, learnable FM and IM, linear disturbance simulation
+    # myLinSim = LinearSimulator('./models/linearModel_FM.ckpt', './models/linearModel_IM.ckpt', False, False)
+    # myLinSim.LTreachexperiment([0,0,0], [20,30,40], 'linear', [10,10,5], 50, 75, 5, True, True, False)
+    # myLinSim.close()
+
+# Linear model, learnable FM and fixed IM, linear disturbance simulation
+    # tf.reset_default_graph()
+    # myLinSim = LinearSimulator('./models/linearModel_FM.ckpt', './models/linearModel_IM.ckpt', False, False)
+    # myLinSim.LTreachexperiment([0,0,0], [20,30,40], 'linear', [10,10,5], 50, 75, 30, True, False, False)
+    # myLinSim.close()
+
+# # Linear model, inverse command simulation
+#     tf.reset_default_graph()
+#     myLinSim = LinearSimulator('./models/linearModel_FM.ckpt', './models/linearModel_IM.ckpt', False, False)
+#     myLinSim.LTreachexperiment([0,0,0], [20,30,40], 'inverse', [0,0,0], 200, 300, 30, False)
+#     myLinSim.close()
+
+# # Linear model, half command simulation
+#     tf.reset_default_graph()
+#     myLinSim = LinearSimulator('./models/linearModel_FM.ckpt', './models/linearModel_IM.ckpt', False, False)
+#     myLinSim.LTreachexperiment([0,0,0], [20,30,40], 'halfcommand', [0,0,0], 50, 75, 5, False)
+#     myLinSim.close()
+
+
 
 # RR Manipulator Model Simulation
     myRRSim = RRSimulator('./models/RRModel_FM.ckpt', './models/RRModel_IM.ckpt', False, False)
-    myRRSim.LTreachexperiment(myRRSim.model.restQ, [40,60], [np.pi/8, np.pi/8], 50, 75, 5, False)
+    myRRSim.LTreachexperiment(myRRSim.model.restQ, [40,60], 'linear', [np.pi/8, np.pi/8], 50, 75, 5, False, False, False)
     myRRSim.close()
 
-# RPR Manipulator Model Simulation
-    myRPRSim = RPRSimulator('./models/RPRModel_FM.ckpt', './models/RPRModel_IM.ckpt', False, False)
-    myRPRSim.LTreachexperiment(myRPRSim.model.restQ, [40,60], [np.pi/8, -10, np.pi/8], 50, 75, 5, False)
-    myRPRSim.close()
+    tf.reset_default_graph()
+    myRRSim = RRSimulator('./models/RRModel_FM.ckpt', './models/RRModel_IM.ckpt', False, False)
+    myRRSim.LTreachexperiment(myRRSim.model.restQ, [40,60], 'linear', [np.pi/8, np.pi/8], 50, 75, 5, True, False, False)
+    myRRSim.close()
+
+    tf.reset_default_graph()
+    myRRSim = RRSimulator('./models/RRModel_FM.ckpt', './models/RRModel_IM.ckpt', False, False)
+    myRRSim.LTreachexperiment(myRRSim.model.restQ, [40,60], 'linear', [np.pi/8, np.pi/8], 50, 75, 5, False, True, False)
+    myRRSim.close()
+
+    tf.reset_default_graph()
+    myRRSim = RRSimulator('./models/RRModel_FM.ckpt', './models/RRModel_IM.ckpt', False, False)
+    myRRSim.LTreachexperiment(myRRSim.model.restQ, [40,60], 'linear', [np.pi/8, np.pi/8], 50, 75, 5, True, True, False)
+    myRRSim.close()
+
+
+
+# # RPR Manipulator Model Simulation
+#     myRPRSim = RPRSimulator('./models/RPRModel_FM.ckpt', './models/RPRModel_IM.ckpt', False, False)
+#     myRPRSim.LTreachexperiment(myRPRSim.model.restQ, [40,60], 'linear', [np.pi/8, -10, np.pi/8], 50, 75, 5, True, True, False)
+#     myRPRSim.close()

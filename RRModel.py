@@ -172,16 +172,16 @@ class RRModel(ArmBase):
         self.prevE = np.array([0,0])
 
 
-    def noFMReach(self, Qs, Xd):
+    def noFMReach(self, Qs, Xd, variation):
         """
         Reach without recurrent control architecture (disregard cerebellar forward model)
         """
         Xs = np.array(self.solveFK(Qs)[0:2,3])
         C = self.runIM(Xs, Xd)
-        Xf = self.runPlant(Qs, C, np.array([0,0]))
+        Xf = self.runPlant(Qs, C, variation, np.array([0,0]))
         return Xf
 
-    def onlineReach(self, Qs, Xd, D, FM_learn=True, IM_learn=True):
+    def onlineReach(self, Qs, Xd, variation, D, FM_learn=True, IM_learn=True):
         """
         Online reach with recurrent control and plant feedback
         """
@@ -195,20 +195,19 @@ class RRModel(ArmBase):
 
         self.prevXd = self.prevXd+self.prevE        # update recursion block
         C = self.runIM(Xs, self.prevXd)             # get command from inverse model
-        Xf = self.runPlant(Qs, C, D)                # get actual plant output
+        Xf = self.runPlant(Qs, C, variation, D)     # get actual plant output
 
         Xp = self.runFM(Xs, C)                      # get prediction from forward model
         self.prevE = Xd-Xp                          # update error for next recursive update
 
         # Online learning/adaptation
-        if FM_learn:
-            self.FM.train(self.mux([[Xs],[C]]),[Xf],self.params['FM_learnrate'],self.params['FM_learnsteps'],1)
-        if IM_learn:
-            self.IM.train(self.mux([[Xs],[Xf]]),[C],self.params['IM_learnrate'],self.params['IM_learnsteps'],1)
+        self.FM.train(self.mux([[Xs],[C]]),[Xf],self.params['FM_learnrate'],self.params['FM_learnsteps'],1)
+#        if IM_learn:
+#            self.IM.train(self.mux([[Xs],[Xf]]),[C],self.params['IM_learnrate'],self.params['IM_learnsteps'],1)
 
         return Xf   
 
-    def offlineReach(self, Qs, Xd, D, FM_learn=True, IM_learn=True):
+    def offlineReach(self, Qs, Xd, variation, D, FM_learn=True, IM_learn=True):
         """
         Offline reach with recurrent control and no plant feedback
         """
@@ -216,7 +215,7 @@ class RRModel(ArmBase):
         C = self.runIM(Xs, Xd)                  # generated command from inverse model
         Xp = self.runFM(Xs, C)                  # predicted output from forward model
 
-        Xf = self.runPlant(Qs, C, D)            # plant output (doesn't actually happen - for visualization purposes online)
+        Xf = self.runPlant(Qs, C, variation, D)            # plant output (doesn't actually happen - for visualization purposes online)
 
         # Offline learning/adaptation
         if FM_learn:
